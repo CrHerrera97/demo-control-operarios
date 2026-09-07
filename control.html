@@ -104,6 +104,24 @@
             color: var(--azul);
             margin-top: 10px;
         }
+
+        .admin-link {
+            display: block;
+            margin-top: 18px;
+            color: var(--azul);
+            text-align: center;
+            font-size: 14px;
+        }
+
+        select,
+        input[type="text"] {
+            width: 100%;
+            padding: 13px;
+            border: 2px solid #d7e0eb;
+            border-radius: 8px;
+            color: #1f2f43;
+            font: inherit;
+        }
     </style>
 </head>
 
@@ -112,6 +130,18 @@
 <div class="container">
 
     <h1>Registro de Obra</h1>
+
+    <!-- DATOS DEL MOVIMIENTO -->
+    <div class="card">
+        <label class="label" for="persona">Persona</label>
+        <input type="text" id="persona" autocomplete="name" placeholder="Nombre y apellidos" required>
+
+        <label class="label" for="tipoMovimiento" style="margin-top: 16px;">Tipo de movimiento</label>
+        <select id="tipoMovimiento">
+            <option value="ENTRADA">ENTRADA</option>
+            <option value="SALIDA">SALIDA</option>
+        </select>
+    </div>
 
     <!-- UBICACIÓN -->
     <div class="card">
@@ -168,6 +198,8 @@
         ENVIAR
     </button>
 
+    <a class="admin-link" href="admin.html">Ver registros</a>
+
 </div>
 
 
@@ -177,6 +209,7 @@
     let longitud = null;
     let precision = null;
     let fotoSeleccionada = null;
+    let fotoBase64 = null;
 
 
     // ==========================
@@ -294,6 +327,12 @@
         preview.src = URL.createObjectURL(archivo);
 
         preview.style.display = "block";
+
+        const lector = new FileReader();
+        lector.onload = function() {
+            fotoBase64 = lector.result;
+        };
+        lector.readAsDataURL(archivo);
     }
 
 
@@ -303,7 +342,14 @@
 
     function enviarRegistro() {
 
-        if (!latitud || !longitud) {
+        const persona = document.getElementById("persona").value.trim();
+
+        if (!persona) {
+            alert("Escribe el nombre de la persona.");
+            return;
+        }
+
+        if (latitud === null || longitud === null) {
 
             alert("Primero debes obtener la ubicación.");
 
@@ -317,21 +363,49 @@
             return;
         }
 
-        alert(`
-Registro listo para enviar.
+        if (!fotoBase64) {
+            alert("Espera un momento mientras se prepara la fotografía.");
+            return;
+        }
 
-Latitud: ${latitud}
+        obtenerFechaServidor().then(function(fechaServidor) {
+            const registros = JSON.parse(localStorage.getItem("registrosMovimientos") || "[]");
 
-Longitud: ${longitud}
+            registros.unshift({
+                id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+                persona: persona,
+                tipo: document.getElementById("tipoMovimiento").value,
+                latitud: latitud,
+                longitud: longitud,
+                precision: precision,
+                foto: fotoBase64,
+                fechaHora: fechaServidor.fecha,
+                fuenteFecha: fechaServidor.fuente
+            });
 
-Precisión: ${precision.toFixed(2)} metros
+            localStorage.setItem("registrosMovimientos", JSON.stringify(registros));
+            alert("Movimiento guardado correctamente.");
+            window.location.href = "admin.html";
+        });
 
-Foto: ${fotoSeleccionada.name}
-        `);
 
-        // Aquí posteriormente podemos enviar
-        // la información a PHP + MySQL.
+    async function obtenerFechaServidor() {
+        try {
+            const respuesta = await fetch(window.location.href, {
+                method: "HEAD",
+                cache: "no-store"
+            });
+            const fecha = respuesta.headers.get("Date");
 
+            if (fecha) {
+                return { fecha: new Date(fecha).toISOString(), fuente: "servidor" };
+            }
+        } catch (error) {
+            // En file:// no existe un servidor del que leer la fecha.
+        }
+
+        return { fecha: new Date().toISOString(), fuente: "dispositivo" };
+    }
     }
 
 </script>

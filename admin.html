@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Registros | Control de operarios</title>
+	<style>
+		:root { --azul: #31629a; --amarillo: #f5c223; --blanco: #fff; }
+		* { box-sizing: border-box; }
+		body { margin: 0; padding: 28px; font-family: Arial, sans-serif; background: #f4f5f7; color: #1f2f43; }
+		main { max-width: 1400px; margin: 0 auto; }
+		header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+		h1 { margin: 0; color: var(--azul); }
+		a, button { border: 0; border-radius: 8px; padding: 12px 16px; background: var(--azul); color: var(--blanco); font: inherit; font-weight: bold; text-decoration: none; cursor: pointer; }
+		button { background: #b83232; }
+		.tabla-contenedor { overflow-x: auto; background: var(--blanco); border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,.08); }
+		table { width: 100%; min-width: 980px; border-collapse: collapse; }
+		th, td { padding: 14px 12px; border-bottom: 1px solid #e5e9ef; text-align: left; vertical-align: middle; }
+		th { background: var(--azul); color: var(--blanco); white-space: nowrap; }
+		tr:last-child td { border-bottom: 0; }
+		.movimiento { font-weight: bold; }
+		.entrada { color: #227447; }
+		.salida { color: #b83232; }
+		.foto { width: 82px; height: 62px; border-radius: 6px; object-fit: cover; display: block; }
+		.vacio { padding: 34px; text-align: center; color: #657386; }
+		.nota { margin: 0 0 16px; color: #657386; font-size: 14px; }
+		@media (max-width: 620px) { body { padding: 18px 12px; } header { align-items: flex-start; flex-direction: column; } h1 { font-size: 25px; } }
+	</style>
+</head>
+<body>
+<main>
+	<header>
+		<h1>Registro de movimientos</h1>
+		<div>
+			<a href="control.html">Nuevo registro</a>
+			<button type="button" onclick="borrarRegistros()">Borrar registros</button>
+		</div>
+	</header>
+	<p class="nota" id="estadoFecha"></p>
+	<section class="tabla-contenedor">
+		<table>
+			<thead>
+				<tr><th>Persona</th><th>Movimiento</th><th>Latitud</th><th>Longitud</th><th>Fotografía</th><th>Fecha y hora</th></tr>
+			</thead>
+			<tbody id="registros"></tbody>
+		</table>
+		<div class="vacio" id="vacio">Todavía no hay movimientos registrados.</div>
+	</section>
+</main>
+<script>
+	const registros = JSON.parse(localStorage.getItem("registrosMovimientos") || "[]");
+	const cuerpo = document.getElementById("registros");
+	const vacio = document.getElementById("vacio");
+	const estadoFecha = document.getElementById("estadoFecha");
+
+	registros.forEach(function(registro) {
+		const fila = document.createElement("tr");
+		const claseMovimiento = registro.tipo === "ENTRADA" ? "entrada" : "salida";
+		fila.innerHTML = `
+			<td>${escapar(registro.persona)}</td>
+			<td class="movimiento ${claseMovimiento}">${escapar(registro.tipo)}</td>
+			<td>${Number(registro.latitud).toFixed(6)}</td>
+			<td>${Number(registro.longitud).toFixed(6)}</td>
+			<td><img class="foto" src="${registro.foto}" alt="Foto de ${escapar(registro.persona)}"></td>
+			<td>${new Date(registro.fechaHora).toLocaleString("es-ES")}<br><small>Fecha de ${registro.fuenteFecha}</small></td>`;
+		cuerpo.appendChild(fila);
+	});
+
+	vacio.style.display = registros.length ? "none" : "block";
+	estadoFecha.textContent = registros.some(function(registro) { return registro.fuenteFecha === "dispositivo"; })
+		? "Aviso: algunos registros se guardaron con la hora del dispositivo porque no había un servidor disponible."
+		: "Las fechas indican la hora devuelta por el servidor.";
+
+	function escapar(valor) {
+		const elemento = document.createElement("span");
+		elemento.textContent = valor == null ? "" : valor;
+		return elemento.innerHTML;
+	}
+
+	function borrarRegistros() {
+		if (registros.length && confirm("¿Borrar todos los registros?")) {
+			localStorage.removeItem("registrosMovimientos");
+			window.location.reload();
+		}
+	}
+</script>
+</body>
+</html>
