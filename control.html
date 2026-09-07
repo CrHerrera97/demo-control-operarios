@@ -7,6 +7,12 @@
     <title>Registro de Obra</title>
 
     <style>
+        :root {
+            --azul: #31629a;
+            --amarillo: #f5c223;
+            --blanco: #ffffff;
+        }
+
         * {
             box-sizing: border-box;
         }
@@ -15,7 +21,7 @@
             margin: 0;
             font-family: Arial, sans-serif;
             background: #f4f5f7;
-            color: #292929;
+            color: var(--azul);
         }
 
         .container {
@@ -30,7 +36,7 @@
         }
 
         .card {
-            background: white;
+            background: var(--blanco);
             padding: 20px;
             border-radius: 15px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.08);
@@ -41,6 +47,7 @@
             display: block;
             font-weight: bold;
             margin-bottom: 10px;
+            color: var(--azul);
         }
 
         button,
@@ -49,8 +56,8 @@
             padding: 15px;
             border: none;
             border-radius: 10px;
-            background: #292929;
-            color: white;
+            background: var(--azul);
+            color: var(--blanco);
             font-size: 16px;
             font-weight: bold;
             cursor: pointer;
@@ -93,7 +100,8 @@
         }
 
         .enviar {
-            background: #f03c23;
+            background: var(--amarillo);
+            color: var(--azul);
             margin-top: 10px;
         }
     </style>
