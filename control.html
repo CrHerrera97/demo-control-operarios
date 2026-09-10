@@ -206,6 +206,8 @@
 
 <script>
 
+    const HOST_BACKEND = window.location.hostname || 'localhost';
+    const URL_MOVIMIENTOS = `http://${HOST_BACKEND}/backend-control-operarios/controllers/movimientos.php`;
     let latitud = null;
     let longitud = null;
     let precision = null;
@@ -213,7 +215,10 @@
     let fotoBase64 = null;
     const usuarioSesion = JSON.parse(localStorage.getItem("usuarioSesion") || "null");
 
-    if (!usuarioSesion || !usuarioSesion.nombre_completo) {
+    if (window.location.protocol === "file:") {
+        alert("Abre esta aplicación desde http://localhost o con Live Server para conservar la sesión.");
+        window.location.href = "login.html";
+    } else if (!usuarioSesion || !usuarioSesion.nombre_completo) {
         alert("Debes iniciar sesión para registrar un movimiento.");
         window.location.href = "login.html";
     } else {
@@ -349,10 +354,12 @@
     // ENVIAR
     // ==========================
 
-    function enviarRegistro() {
+    async function enviarRegistro() {
 
         const persona = usuarioSesion.nombre_completo;
         const obra = document.getElementById("obra").value.trim();
+        const tipo = document.getElementById("tipoMovimiento").value;
+        const botonEnviar = document.querySelector(".enviar");
 
         if (!obra) {
             alert("Escribe la obra.");
@@ -378,13 +385,38 @@
             return;
         }
 
-        obtenerFechaServidor().then(function(fechaServidor) {
+        botonEnviar.disabled = true;
+        botonEnviar.textContent = "ENVIANDO...";
+
+        const datos = new FormData();
+        datos.append("movimiento", tipo);
+        datos.append("obra", obra);
+        datos.append("latitud", String(latitud));
+        datos.append("longitud", String(longitud));
+        datos.append("fotografia", fotoSeleccionada);
+
+        try {
+            const respuesta = await fetch(URL_MOVIMIENTOS, {
+                method: "POST",
+                body: datos,
+                credentials: "include"
+            });
+            const resultado = await respuesta.json();
+
+            if (!respuesta.ok || !resultado.exito) {
+                if (respuesta.status === 401) {
+                    throw new Error("La sesión del servidor no está activa. Vuelve a iniciar sesión desde esta misma dirección.");
+                }
+                throw new Error(resultado.mensaje || "No se pudo guardar el movimiento.");
+            }
+
+            const fechaServidor = await obtenerFechaServidor();
             const registros = JSON.parse(localStorage.getItem("registrosMovimientos") || "[]");
 
             registros.unshift({
-                id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+                id: resultado.movimiento_id,
                 persona: persona,
-                tipo: document.getElementById("tipoMovimiento").value,
+                tipo: tipo,
                 obra: obra,
                 latitud: latitud,
                 longitud: longitud,
@@ -397,7 +429,12 @@
             localStorage.setItem("registrosMovimientos", JSON.stringify(registros));
             alert("Movimiento guardado correctamente.");
             window.location.href = "admin.html";
-        });
+        } catch (error) {
+            alert(error.message || "No se pudo conectar con el servidor.");
+            botonEnviar.disabled = false;
+            botonEnviar.textContent = "ENVIAR";
+        }
+    }
 
 
     async function obtenerFechaServidor() {
@@ -416,7 +453,6 @@
         }
 
         return { fecha: new Date().toISOString(), fuente: "dispositivo" };
-    }
     }
 
 </script>

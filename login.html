@@ -121,7 +121,8 @@
     </main>
 
     <script>
-        const URL_LOGIN = 'http://localhost/backend-control-operarios/controllers/login.php';
+        const HOST_BACKEND = window.location.hostname || 'localhost';
+        const URL_LOGIN = `http://${HOST_BACKEND}/backend-control-operarios/controllers/login.php`;
         const formularioLogin = document.getElementById('formularioLogin');
         const mensajeLogin = document.getElementById('mensajeLogin');
         const botonLogin = formularioLogin.querySelector('button[type="submit"]');
