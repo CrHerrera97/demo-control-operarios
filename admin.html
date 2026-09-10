@@ -22,9 +22,10 @@
 		.entrada { color: #227447; }
 		.salida { color: #b83232; }
 		.foto { width: 82px; height: 62px; border-radius: 6px; object-fit: cover; display: block; }
+		.mapa-enlace { white-space: nowrap; }
 		.vacio { padding: 34px; text-align: center; color: #657386; }
 		.nota { margin: 0 0 16px; color: #657386; font-size: 14px; }
-		.filtros { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 12px; margin-bottom: 18px; padding: 16px; background: var(--blanco); border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,.06); }
+		.filtros { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr auto; gap: 12px; margin-bottom: 18px; padding: 16px; background: var(--blanco); border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,.06); }
 		.filtros label { display: flex; flex-direction: column; gap: 6px; color: var(--azul); font-size: 13px; font-weight: bold; }
 		.filtros input, .filtros select { width: 100%; min-height: 42px; padding: 9px 10px; border: 2px solid #d7e0eb; border-radius: 7px; color: #1f2f43; font: inherit; }
 		.filtros input:focus, .filtros select:focus { border-color: var(--azul); outline: none; }
@@ -60,6 +61,9 @@
 				<option value="SALIDA">SALIDA</option>
 			</select>
 		</label>
+		<label for="filtroObra">Obra
+			<input type="search" id="filtroObra" placeholder="Buscar por obra">
+		</label>
 		<label for="filtroDesde">Desde
 			<input type="date" id="filtroDesde">
 		</label>
@@ -76,7 +80,7 @@
 	<section class="tabla-contenedor">
 		<table>
 			<thead>
-				<tr><th>Persona</th><th>Movimiento</th><th>Latitud</th><th>Longitud</th><th>Fotografía</th><th>Fecha y hora</th></tr>
+				<tr><th>Persona</th><th>Movimiento</th><th>Obra</th><th>Latitud</th><th>Longitud</th><th>Mapa</th><th>Fotografía</th><th>Fecha y hora</th></tr>
 			</thead>
 			<tbody id="registros"></tbody>
 		</table>
@@ -91,6 +95,7 @@
 	const contadorRegistros = document.getElementById("contadorRegistros");
 	const filtroPersona = document.getElementById("filtroPersona");
 	const filtroTipo = document.getElementById("filtroTipo");
+	const filtroObra = document.getElementById("filtroObra");
 	const filtroDesde = document.getElementById("filtroDesde");
 	const filtroHasta = document.getElementById("filtroHasta");
 	let registrosVisibles = [];
@@ -98,15 +103,17 @@
 	function mostrarRegistros() {
 		const personaBuscada = filtroPersona.value.trim().toLocaleLowerCase();
 		const tipoBuscado = filtroTipo.value;
+		const obraBuscada = filtroObra.value.trim().toLocaleLowerCase();
 		const fechaDesde = filtroDesde.value ? new Date(filtroDesde.value + "T00:00:00") : null;
 		const fechaHasta = filtroHasta.value ? new Date(filtroHasta.value + "T23:59:59.999") : null;
 		const registrosFiltrados = registros.filter(function(registro) {
 			const fechaRegistro = new Date(registro.fechaHora);
 			const coincidePersona = !personaBuscada || registro.persona.toLocaleLowerCase().includes(personaBuscada);
 			const coincideTipo = !tipoBuscado || registro.tipo === tipoBuscado;
+			const coincideObra = !obraBuscada || (registro.obra || "").toLocaleLowerCase().includes(obraBuscada);
 			const coincideDesde = !fechaDesde || fechaRegistro >= fechaDesde;
 			const coincideHasta = !fechaHasta || fechaRegistro <= fechaHasta;
-			return coincidePersona && coincideTipo && coincideDesde && coincideHasta;
+			return coincidePersona && coincideTipo && coincideObra && coincideDesde && coincideHasta;
 		});
 		registrosVisibles = registrosFiltrados;
 
@@ -117,8 +124,10 @@
 		fila.innerHTML = `
 			<td>${escapar(registro.persona)}</td>
 			<td class="movimiento ${claseMovimiento}">${escapar(registro.tipo)}</td>
+			<td>${escapar(registro.obra || "")}</td>
 			<td>${Number(registro.latitud).toFixed(6)}</td>
 			<td>${Number(registro.longitud).toFixed(6)}</td>
+			<td><a class="mapa-enlace" href="https://www.google.com/maps?q=${Number(registro.latitud)},${Number(registro.longitud)}" target="_blank" rel="noopener noreferrer">Ver mapa</a></td>
 			<td><img class="foto" src="${registro.foto}" alt="Foto de ${escapar(registro.persona)}"></td>
 			<td>${new Date(registro.fechaHora).toLocaleString("es-ES")}<br><small>Fecha de ${registro.fuenteFecha}</small></td>`;
 		cuerpo.appendChild(fila);
@@ -129,7 +138,7 @@
 		contadorRegistros.textContent = `Mostrando ${registrosFiltrados.length} de ${registros.length} registros`;
 	}
 
-	[filtroPersona, filtroTipo, filtroDesde, filtroHasta].forEach(function(filtro) {
+	[filtroPersona, filtroTipo, filtroObra, filtroDesde, filtroHasta].forEach(function(filtro) {
 		filtro.addEventListener("input", mostrarRegistros);
 		filtro.addEventListener("change", mostrarRegistros);
 	});
@@ -137,6 +146,7 @@
 	function limpiarFiltros() {
 		filtroPersona.value = "";
 		filtroTipo.value = "";
+		filtroObra.value = "";
 		filtroDesde.value = "";
 		filtroHasta.value = "";
 		mostrarRegistros();
@@ -152,13 +162,14 @@
 			return [
 				registro.persona,
 				registro.tipo,
+				registro.obra || "",
 				registro.latitud,
 				registro.longitud,
 				new Date(registro.fechaHora).toLocaleString("es-ES"),
 				registro.fuenteFecha
 			];
 		});
-		const contenido = [["Persona", "Movimiento", "Latitud", "Longitud", "Fecha y hora", "Fuente de fecha"]]
+		const contenido = [["Persona", "Movimiento", "Obra", "Latitud", "Longitud", "Fecha y hora", "Fuente de fecha"]]
 			.concat(filas)
 			.map(function(fila) { return fila.map(celda).join(";"); })
 			.join("\r\n");

@@ -133,14 +133,17 @@
 
     <!-- DATOS DEL MOVIMIENTO -->
     <div class="card">
-        <label class="label" for="persona">Persona</label>
-        <input type="text" id="persona" autocomplete="name" placeholder="Nombre y apellidos" required>
+        <span class="label">Persona</span>
+        <div id="personaSesion" class="status">Cargando usuario...</div>
 
         <label class="label" for="tipoMovimiento" style="margin-top: 16px;">Tipo de movimiento</label>
         <select id="tipoMovimiento">
             <option value="ENTRADA">ENTRADA</option>
             <option value="SALIDA">SALIDA</option>
         </select>
+
+        <label class="label" for="obra" style="margin-top: 16px;">Obra</label>
+        <input type="text" id="obra" maxlength="150" placeholder="Ej. Alcaldía o Puerto Wilches" required>
     </div>
 
     <!-- UBICACIÓN -->
@@ -198,8 +201,6 @@
         ENVIAR
     </button>
 
-    <a class="admin-link" href="admin.html">Ver registros</a>
-
 </div>
 
 
@@ -210,6 +211,14 @@
     let precision = null;
     let fotoSeleccionada = null;
     let fotoBase64 = null;
+    const usuarioSesion = JSON.parse(localStorage.getItem("usuarioSesion") || "null");
+
+    if (!usuarioSesion || !usuarioSesion.nombre_completo) {
+        alert("Debes iniciar sesión para registrar un movimiento.");
+        window.location.href = "login.html";
+    } else {
+        document.getElementById("personaSesion").textContent = usuarioSesion.nombre_completo;
+    }
 
 
     // ==========================
@@ -342,10 +351,11 @@
 
     function enviarRegistro() {
 
-        const persona = document.getElementById("persona").value.trim();
+        const persona = usuarioSesion.nombre_completo;
+        const obra = document.getElementById("obra").value.trim();
 
-        if (!persona) {
-            alert("Escribe el nombre de la persona.");
+        if (!obra) {
+            alert("Escribe la obra.");
             return;
         }
 
@@ -375,6 +385,7 @@
                 id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
                 persona: persona,
                 tipo: document.getElementById("tipoMovimiento").value,
+                obra: obra,
                 latitud: latitud,
                 longitud: longitud,
                 precision: precision,

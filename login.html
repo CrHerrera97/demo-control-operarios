@@ -86,12 +86,25 @@
             outline: 3px solid var(--azul);
             outline-offset: 3px;
         }
+
+        button:disabled {
+            cursor: wait;
+            opacity: 0.7;
+        }
+
+        .mensaje {
+            min-height: 20px;
+            margin: 16px 0 0;
+            color: #b42318;
+            font-size: 14px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
     <main class="login">
         <h1>Iniciar sesión</h1>
-        <form action="control.html" method="get">
+        <form id="formularioLogin">
             <label class="campo" for="usuario">
                 Usuario
                 <input type="text" id="usuario" name="usuario" autocomplete="username" required>
@@ -103,7 +116,44 @@
             </label>
 
             <button type="submit">ENTRAR</button>
+            <p id="mensajeLogin" class="mensaje" role="alert" aria-live="polite"></p>
         </form>
     </main>
+
+    <script>
+        const URL_LOGIN = 'http://localhost/backend-control-operarios/controllers/login.php';
+        const formularioLogin = document.getElementById('formularioLogin');
+        const mensajeLogin = document.getElementById('mensajeLogin');
+        const botonLogin = formularioLogin.querySelector('button[type="submit"]');
+
+        formularioLogin.addEventListener('submit', async (evento) => {
+            evento.preventDefault();
+            mensajeLogin.textContent = '';
+            botonLogin.disabled = true;
+            botonLogin.textContent = 'VALIDANDO...';
+
+            const datos = new FormData(formularioLogin);
+
+            try {
+                const respuesta = await fetch(URL_LOGIN, {
+                    method: 'POST',
+                    body: datos,
+                    credentials: 'include'
+                });
+                const resultado = await respuesta.json();
+
+                if (!respuesta.ok || !resultado.exito) {
+                    throw new Error(resultado.mensaje || 'No se pudo iniciar sesión.');
+                }
+
+                localStorage.setItem('usuarioSesion', JSON.stringify(resultado.usuario));
+                window.location.href = 'control.html';
+            } catch (error) {
+                mensajeLogin.textContent = error.message || 'No se pudo conectar con el servidor.';
+                botonLogin.disabled = false;
+                botonLogin.textContent = 'ENTRAR';
+            }
+        });
+    </script>
 </body>
 </html>
