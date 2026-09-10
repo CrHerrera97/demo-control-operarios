@@ -88,7 +88,8 @@
 	</section>
 </main>
 <script>
-	const registros = JSON.parse(localStorage.getItem("registrosMovimientos") || "[]");
+	const HOST_BACKEND = window.location.hostname || "localhost";
+	const URL_MOVIMIENTOS = `http://${HOST_BACKEND}/backend-control-operarios/controllers/movimientos.php`;
 	const cuerpo = document.getElementById("registros");
 	const vacio = document.getElementById("vacio");
 	const estadoFecha = document.getElementById("estadoFecha");
@@ -98,6 +99,7 @@
 	const filtroObra = document.getElementById("filtroObra");
 	const filtroDesde = document.getElementById("filtroDesde");
 	const filtroHasta = document.getElementById("filtroHasta");
+	let registros = [];
 	let registrosVisibles = [];
 
 	function mostrarRegistros() {
@@ -107,7 +109,7 @@
 		const fechaDesde = filtroDesde.value ? new Date(filtroDesde.value + "T00:00:00") : null;
 		const fechaHasta = filtroHasta.value ? new Date(filtroHasta.value + "T23:59:59.999") : null;
 		const registrosFiltrados = registros.filter(function(registro) {
-			const fechaRegistro = new Date(registro.fechaHora);
+			const fechaRegistro = new Date(registro.fecha_hora);
 			const coincidePersona = !personaBuscada || registro.persona.toLocaleLowerCase().includes(personaBuscada);
 			const coincideTipo = !tipoBuscado || registro.tipo === tipoBuscado;
 			const coincideObra = !obraBuscada || (registro.obra || "").toLocaleLowerCase().includes(obraBuscada);
@@ -128,8 +130,8 @@
 			<td>${Number(registro.latitud).toFixed(6)}</td>
 			<td>${Number(registro.longitud).toFixed(6)}</td>
 			<td><a class="mapa-enlace" href="https://www.google.com/maps?q=${Number(registro.latitud)},${Number(registro.longitud)}" target="_blank" rel="noopener noreferrer">Ver mapa</a></td>
-			<td><img class="foto" src="${registro.foto}" alt="Foto de ${escapar(registro.persona)}"></td>
-			<td>${new Date(registro.fechaHora).toLocaleString("es-ES")}<br><small>Fecha de ${registro.fuenteFecha}</small></td>`;
+			<td><img class="foto" src="data:image/jpeg;base64,${registro.fotografia}" alt="Foto de ${escapar(registro.persona)}"></td>
+			<td>${new Date(registro.fecha_hora).toLocaleString("es-ES")}</td>`;
 		cuerpo.appendChild(fila);
 		});
 
@@ -165,11 +167,10 @@
 				registro.obra || "",
 				registro.latitud,
 				registro.longitud,
-				new Date(registro.fechaHora).toLocaleString("es-ES"),
-				registro.fuenteFecha
+				new Date(registro.fecha_hora).toLocaleString("es-ES")
 			];
 		});
-		const contenido = [["Persona", "Movimiento", "Obra", "Latitud", "Longitud", "Fecha y hora", "Fuente de fecha"]]
+		const contenido = [["Persona", "Movimiento", "Obra", "Latitud", "Longitud", "Fecha y hora"]]
 			.concat(filas)
 			.map(function(fila) { return fila.map(celda).join(";"); })
 			.join("\r\n");
@@ -193,10 +194,28 @@
 		window.print();
 	}
 
-	estadoFecha.textContent = registros.some(function(registro) { return registro.fuenteFecha === "dispositivo"; })
-		? "Aviso: algunos registros se guardaron con la hora del dispositivo porque no había un servidor disponible."
-		: "Las fechas indican la hora devuelta por el servidor.";
-	mostrarRegistros();
+	async function cargarRegistros() {
+		try {
+			const respuesta = await fetch(URL_MOVIMIENTOS, {
+				method: "GET",
+				credentials: "include",
+				cache: "no-store"
+			});
+			const resultado = await respuesta.json();
+			if (!respuesta.ok || !resultado.exito) {
+				throw new Error(resultado.mensaje || "No se pudieron cargar los movimientos.");
+			}
+			registros = resultado.movimientos || [];
+			estadoFecha.textContent = "Registros cargados desde la base de datos.";
+			mostrarRegistros();
+		} catch (error) {
+			estadoFecha.textContent = error.message || "No se pudo conectar con la base de datos.";
+			registros = [];
+			mostrarRegistros();
+		}
+	}
+
+	cargarRegistros();
 
 	function escapar(valor) {
 		const elemento = document.createElement("span");
@@ -205,10 +224,7 @@
 	}
 
 	function borrarRegistros() {
-		if (registros.length && confirm("¿Borrar todos los registros?")) {
-			localStorage.removeItem("registrosMovimientos");
-			window.location.reload();
-		}
+		alert("Los registros se administran desde la base de datos.");
 	}
 </script>
 </body>
