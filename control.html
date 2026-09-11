@@ -105,6 +105,11 @@
             margin-top: 10px;
         }
 
+        .cerrar-sesion {
+            background: #b83232;
+            margin-top: 18px;
+        }
+
         .admin-link {
             display: block;
             margin-top: 18px;
@@ -199,6 +204,14 @@
         onclick="enviarRegistro()"
     >
         ENVIAR
+    </button>
+
+    <button
+        type="button"
+        class="cerrar-sesion"
+        onclick="window.location.href = 'logout.html'"
+    >
+        CERRAR SESIÓN
     </button>
 
 </div>
@@ -428,7 +441,7 @@
 
             localStorage.setItem("registrosMovimientos", JSON.stringify(registros));
             alert("Movimiento guardado correctamente.");
-            window.location.href = "admin.html";
+            window.location.reload();
         } catch (error) {
             alert(error.message || "No se pudo conectar con el servidor.");
             botonEnviar.disabled = false;

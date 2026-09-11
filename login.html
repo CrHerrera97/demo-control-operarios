@@ -148,7 +148,7 @@
                 }
 
                 localStorage.setItem('usuarioSesion', JSON.stringify(resultado.usuario));
-                window.location.href = 'control.html';
+                window.location.href = resultado.usuario.rol === 'ADMIN' ? 'admin.html' : 'control.html';
             } catch (error) {
                 mensajeLogin.textContent = error.message || 'No se pudo conectar con el servidor.';
                 botonLogin.disabled = false;
